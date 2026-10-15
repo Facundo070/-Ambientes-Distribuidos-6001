@@ -6,7 +6,7 @@ El **Cliente** envía dos números y una operación matemática al **Servidor**,
 
 ---
 
-## 🚀 Instrucciones de ejecución
+##  Instrucciones de ejecución
 
 ### 1. Compilar los programas
 En la consola, dentro de la carpeta del proyecto:
