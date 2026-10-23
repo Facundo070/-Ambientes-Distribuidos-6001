@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  servidor:
+    build: ./servidor
+    container_name: tp7_servidor
+    ports:
+      - "8000:8000"
+
+  cliente:
+    build: ./cliente
+    container_name: tp7_cliente
+    depends_on:
+      - servidor
