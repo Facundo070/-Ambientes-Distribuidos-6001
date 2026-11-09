@@ -1,0 +1,25 @@
+services:
+
+  postgres-master:
+    image: postgres:16
+    container_name: master
+
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: distribuidas
+
+    ports:
+      - "5432:5432"
+
+  postgres-replica:
+    image: postgres:16
+    container_name: replica
+
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: distribuidas
+
+    ports:
+      - "5433:5432"
