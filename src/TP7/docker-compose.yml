@@ -6,8 +6,20 @@ services:
     ports:
       - "8000:8000"
 
-  cliente:
-    build: ./cliente
-    container_name: tp7_cliente
+  cliente_web:
+    build:
+      context: ./cliente
+      dockerfile: Dockerfile.web
+    container_name: tp7_cliente_web
+    ports:
+      - "3000:3000"
+    depends_on:
+      - servidor
+
+  cliente_consola:
+    build:
+      context: ./cliente
+      dockerfile: Dockerfile
+    container_name: tp7_cliente_consola
     depends_on:
       - servidor

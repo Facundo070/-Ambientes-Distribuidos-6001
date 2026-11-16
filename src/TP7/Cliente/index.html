@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TP 7 - Cliente Web Consumidor de API</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .card {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+    .card-header {
+      background-color: #273549;
+      border-bottom: 1px solid #334155;
+      font-weight: 600;
+    }
+    .form-control, .form-select {
+      background-color: #0f172a;
+      border: 1px solid #475569;
+      color: #f8fafc;
+    }
+    .form-control:focus {
+      background-color: #0f172a;
+      border-color: #38bdf8;
+      color: #f8fafc;
+      box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25);
+    }
+    .table {
+      color: #e2e8f0;
+    }
+    .table-dark {
+      --bs-table-bg: #1e293b;
+      --bs-table-striped-bg: #273549;
+      --bs-table-border-color: #334155;
+    }
+    .console-box {
+      background-color: #030712;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .log-entry {
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed #1f2937;
+    }
+    .badge-status {
+      font-size: 0.8rem;
+      padding: 0.4em 0.8em;
+    }
+    .btn-test {
+      transition: all 0.2s ease-in-out;
+    }
+    .btn-test:hover {
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body class="py-4">
+
+<div class="container">
+  <!-- Encabezado -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center pb-3 mb-4 border-bottom border-secondary">
+    <div>
+      <h2 class="fw-bold mb-0 text-info">
+        <i class="bi bi-diagram-3-fill me-2"></i>TP 7: Cliente Web Independiente
+      </h2>
+      <p class="text-secondary mb-0 small">Ambientes Distribuidos - Consigna 2: Consumidor de API y Captura de Excepciones</p>
+    </div>
+    <div class="d-flex align-items-center gap-2 mt-2 mt-md-0">
+      <div id="connectionStatus" class="badge bg-secondary badge-status d-flex align-items-center gap-1">
+        <i class="bi bi-circle-fill"></i> Verificando servidor...
+      </div>
+      <button class="btn btn-sm btn-outline-info" onclick="verificarConexion()">
+        <i class="bi bi-arrow-repeat"></i> Test Conexión
+      </button>
+    </div>
+  </div>
+
+  <!-- Configuración de URL del Servidor -->
+  <div class="card mb-4">
+    <div class="card-body py-2">
+      <div class="row align-items-center">
+        <div class="col-md-3">
+          <label class="form-label mb-0 fw-semibold text-light small">
+            <i class="bi bi-hdd-network me-1"></i>URL del Servidor API (Backend):
+          </label>
+        </div>
+        <div class="col-md-7">
+          <input type="text" id="apiUrlInput" class="form-control form-control-sm" value="http://localhost:8000">
+        </div>
+        <div class="col-md-2 text-end">
+          <button class="btn btn-sm btn-primary w-100" onclick="actualizarApiUrl()">
+            <i class="bi bi-check2"></i> Aplicar URL
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerta dinámica de Notificaciones y Excepciones Capturadas -->
+  <div id="alertContainer"></div>
+
+  <div class="row g-4">
+    <!-- COLUMNA IZQUIERDA: Operaciones y Simulador de Excepciones -->
+    <div class="col-lg-6">
+
+      <!-- Card: Crear Ítem (POST /items) -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-plus-circle me-2 text-success"></i>Registrar Producto (POST /items)</span>
+          <span class="badge bg-success">Operación Normal</span>
+        </div>
+        <div class="card-body">
+          <form id="formAgregarItem" onsubmit="agregarItem(event)">
+            <div class="mb-3">
+              <label for="nombreItem" class="form-label small">Nombre del Producto:</label>
+              <input type="text" class="form-control" id="nombreItem" placeholder="Ej: Memoria RAM 16GB" required>
+            </div>
+            <div class="mb-3">
+              <label for="precioItem" class="form-label small">Precio ($):</label>
+              <input type="number" step="0.01" class="form-control" id="precioItem" placeholder="Ej: 75.50" required>
+            </div>
+            <button type="submit" class="btn btn-success w-100">
+              <i class="bi bi-send-fill me-1"></i> Enviar POST a la API
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Card: Laboratorio de Captura de Excepciones -->
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-shield-exclamation me-2"></i>Demostración: Captura de Excepciones</span>
+          <span class="badge bg-dark">Consigna 2</span>
+        </div>
+        <div class="card-body">
+          <p class="small text-secondary mb-3">
+            Haga clic en los botones para disparar intencionalmente fallas distribuidas y verificar cómo el cliente web captura la excepción, analiza el código HTTP y muestra el error:
+          </p>
+          
+          <div class="d-grid gap-2">
+            <!-- Test 1: Error 400 -->
+            <button class="btn btn-outline-warning text-start btn-test" onclick="probarExcepcion400()">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              <strong>Probar Error 400 (Bad Request):</strong> Enviar precio negativo (-100)
+            </button>
+
+            <!-- Test 2: Error 409 -->
+            <button class="btn btn-outline-info text-start btn-test" onclick="probarExcepcion409()">
+              <i class="bi bi-files me-2"></i>
+              <strong>Probar Error 409 (Conflicto):</strong> Registrar producto duplicado
+            </button>
+
+            <!-- Test 3: Error 404 -->
+            <button class="btn btn-outline-warning text-start btn-test" onclick="probarExcepcion404()">
+              <i class="bi bi-question-circle-fill me-2"></i>
+              <strong>Probar Error 404 (Not Found):</strong> Buscar ítem inexistente (ID 9999)
+            </button>
+
+            <!-- Test 4: Error 500 -->
+            <button class="btn btn-outline-danger text-start btn-test" onclick="probarExcepcion500()">
+              <i class="bi bi-bug-fill me-2"></i>
+              <strong>Probar Error 500 (Server Error):</strong> Disparar excepción interna del servidor
+            </button>
+
+            <!-- Test 5: Error de Conexión / Red -->
+            <button class="btn btn-outline-secondary text-start btn-test" onclick="probarFallaDeRed()">
+              <i class="bi bi-wifi-off me-2"></i>
+              <strong>Probar Falla de Red (Desconexión):</strong> Conectar a puerto caído (Servidor Offline)
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUMNA DERECHA: Listado de Ítems y Consola de Log -->
+    <div class="col-lg-6">
+
+      <!-- Card: Catálogo de Ítems (GET /items) -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-box-seam me-2 text-info"></i>Productos en Servidor (GET /items)</span>
+          <button class="btn btn-sm btn-outline-light" onclick="cargarItems()">
+            <i class="bi bi-arrow-clockwise"></i> Refrescar
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+            <table class="table table-dark table-striped table-hover mb-0 align-middle">
+              <thead>
+                <tr>
+                  <th style="width: 15%;">ID</th>
+                  <th>Nombre</th>
+                  <th>Precio</th>
+                  <th style="width: 25%;">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tablaItemsBody">
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-3">Cargando productos...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Consola de Captura y Respuestas HTTP -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-terminal-fill me-2 text-warning"></i>Consola de Eventos y Respuestas</span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="limpiarConsola()">
+            <i class="bi bi-trash"></i> Limpiar
+          </button>
+        </div>
+        <div class="card-body">
+          <div id="consola" class="console-box">
+            <div class="text-secondary">[CLIENTE INICIADO] Esperando peticiones hacia la API...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Pie de página -->
+  <footer class="mt-4 pt-3 border-top border-secondary text-center text-secondary small">
+    Desarrollo de Aplicaciones para Ambientes Distribuidos | IES 6001 | Jorge Facundo Díaz
+  </footer>
+</div>
+
+<script>
+  let API_BASE_URL = "http://localhost:8000";
+
+  function actualizarApiUrl() {
+    const inputVal = document.getElementById("apiUrlInput").value.trim();
+    if (inputVal) {
+      API_BASE_URL = inputVal.replace(/\/$/, "");
+      log("info", `URL base configurada a: ${API_BASE_URL}`);
+      verificarConexion();
+      cargarItems();
+    }
+  }
+
+  function log(tipo, mensaje, objeto = null) {
+    const consola = document.getElementById("consola");
+    const timestamp = new Date().toLocaleTimeString();
+    let colorClass = "text-info";
+    let icono = "bi-info-circle";
+
+    if (tipo === "success") {
+      colorClass = "text-success";
+      icono = "bi-check-circle";
+    } else if (tipo === "error") {
+      colorClass = "text-danger";
+      icono = "bi-x-octagon-fill";
+    } else if (tipo === "warn") {
+      colorClass = "text-warning";
+      icono = "bi-exclamation-triangle-fill";
+    }
+
+    let detalleJson = "";
+    if (objeto) {
+      detalleJson = `<pre class="text-light mb-0 mt-1 p-1 bg-dark rounded" style="font-size:0.75rem;">${JSON.stringify(objeto, null, 2)}</pre>`;
+    }
+
+    const entrada = document.createElement("div");
+    entrada.className = "log-entry";
+    entrada.innerHTML = `
+      <span class="text-secondary">[${timestamp}]</span> 
+      <span class="${colorClass}"><i class="bi ${icono} me-1"></i>${mensaje}</span>
+      ${detalleJson}
+    `;
+
+    consola.appendChild(entrada);
+    consola.scrollTop = consola.scrollHeight;
+  }
+
+  function mostrarAlerta(tipo, titulo, detalle) {
+    const container = document.getElementById("alertContainer");
+    let alertClass = "alert-info";
+    let icon = "bi-info-circle-fill";
+
+    if (tipo === "success") {
+      alertClass = "alert-success";
+      icon = "bi-check-circle-fill";
+    } else if (tipo === "error") {
+      alertClass = "alert-danger";
+      icon = "bi-exclamation-octagon-fill";
+    } else if (tipo === "warn") {
+      alertClass = "alert-warning";
+      icon = "bi-exclamation-triangle-fill";
+    }
+
+    container.innerHTML = `
+      <div class="alert ${alertClass} alert-dismissible fade show shadow-sm" role="alert">
+        <div class="d-flex align-items-center">
+          <i class="bi ${icon} fs-4 me-3"></i>
+          <div>
+            <strong>${titulo}</strong>
+            <div>${detalle}</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    `;
+  }
+
+  function limpiarConsola() {
+    document.getElementById("consola").innerHTML = '<div class="text-secondary">[CONSOLA REINICIADA]</div>';
+  }
+
+  // 1. Verificación de conectividad (GET /)
+  async function verificarConexion() {
+    const statusBadge = document.getElementById("connectionStatus");
+    statusBadge.className = "badge bg-warning badge-status";
+    statusBadge.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Conectando...`;
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/`, { method: "GET" });
+      if (!resp.ok) {
+        throw new Error(`El servidor respondió con código HTTP ${resp.status}`);
+      }
+      const data = await resp.json();
+      statusBadge.className = "badge bg-success badge-status";
+      statusBadge.innerHTML = `<i class="bi bi-check-circle-fill"></i> API Conectada (Online)`;
+      log("success", `[CONEXIÓN EXITOSA] Servidor en ${API_BASE_URL}`, data);
+    } catch (error) {
+      statusBadge.className = "badge bg-danger badge-status";
+      statusBadge.innerHTML = `<i class="bi bi-x-circle-fill"></i> API Desconectada`;
+      log("error", `[EXCEPCIÓN DE RED CAPTURADA] No se pudo comunicar con el servidor: ${error.message}`);
+      mostrarAlerta("error", "Excepción de Comunicación (Falla de Red)", `No se pudo conectar a ${API_BASE_URL}. Verifique que el contenedor o proceso del servidor esté ejecutándose.`);
+    }
+  }
+
+  // 2. Listar Ítems (GET /items)
+  async function cargarItems() {
+    const tbody = document.getElementById("tablaItemsBody");
+    try {
+      const resp = await fetch(`${API_BASE_URL}/items`);
+      
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP Error ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      const items = data.items || [];
+
+      if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No hay productos registrados en el servidor.</td></tr>';
+      } else {
+        tbody.innerHTML = items.map(item => `
+          <tr>
+            <td><span class="badge bg-secondary">#${item.id}</span></td>
+            <td class="fw-semibold">${item.name}</td>
+            <td class="text-success">$${Number(item.price).toFixed(2)}</td>
+            <td>
+              <button class="btn btn-xs btn-outline-info py-0 px-2" onclick="consultarItemPorId(${item.id})">
+                <i class="bi bi-search"></i> Ver
+              </button>
+            </td>
+          </tr>
+        `).join("");
+      }
+
+      log("success", `[GET /items] Obtenidos ${items.length} productos correctamente.`);
+    } catch (error) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-3"><i class="bi bi-exclamation-triangle"></i> Error al cargar productos: ${error.message}</td></tr>`;
+      log("error", `[EXCEPCIÓN CAPTURADA EN GET /items] ${error.message}`);
+    }
+  }
+
+  // 3. Crear Ítem (POST /items)
+  async function agregarItem(event) {
+    event.preventDefault();
+    const nombre = document.getElementById("nombreItem").value.trim();
+    const precio = parseFloat(document.getElementById("precioItem").value);
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nombre, price: precio })
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        // El servidor devolvió una excepción HTTP (400, 409, 422, etc.)
+        throw new Error(data.detail || `Error HTTP ${resp.status}`);
+      }
+
+      mostrarAlerta("success", "¡Ítem Agregado con Éxito!", `Producto "${data.item.name}" guardado con ID #${data.item.id}`);
+      log("success", `[POST /items -> HTTP 201] Ítem creado exitosamente`, data);
+
+      document.getElementById("nombreItem").value = "";
+      document.getElementById("precioItem").value = "";
+      cargarItems();
+
+    } catch (error) {
+      // Captura y manejo de la excepción en la UI
+      mostrarAlerta("error", "Excepción Capturada en POST /items", error.message);
+      log("error", `[EXCEPCIÓN CAPTURADA EN POST] ${error.message}`);
+    }
+  }
+
+  // 4. Consultar ítem por ID (GET /items/{id})
+  async function consultarItemPorId(id) {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/items/${id}`);
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        throw new Error(data.detail || `HTTP Error ${resp.status}`);
+      }
+
+      mostrarAlerta("info", `Detalle de Ítem #${id}`, `Nombre: <strong>${data.item.name}</strong> | Precio: <strong>$${data.item.price}</strong>`);
+      log("info", `[GET /items/${id} -> HTTP 200] Consulta exitosa`, data);
+    } catch (error) {
+      mostrarAlerta("error", `Excepción al consultar Ítem #${id}`, error.message);
+      log("error", `[EXCEPCIÓN CAPTURADA EN GET /items/${id}] ${error.message}`);
+    }
+  }
+
+  // ========================================================
+  // BANCO DE PRUEBAS DE EXCEPCIONES (CONSIGNA 2)
+  // ========================================================
+
+  // Prueba 1: Forzar Error 400 (Precio Negativo)
+  async function probarExcepcion400() {
+    log("warn", `[DISPARANDO PRUEBA] Enviando POST /items con precio inválido (-100)...`);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Monitor de Prueba Inválido", price: -100 })
+      });
+
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(`[HTTP ${resp.status} Bad Request] ${data.detail}`);
+      }
+    } catch (excepcion) {
+      mostrarAlerta("warn", "Captura de Excepción 400 (Validación de Negocio)", excepcion.message);
+      log("error", `[EXCEPCIÓN 400 CAPTURADA EN CLIENTE]: ${excepcion.message}`);
+    }
+  }
+
+  // Prueba 2: Forzar Error 409 (Producto Duplicado)
+  async function probarExcepcion409() {
+    log("warn", `[DISPARANDO PRUEBA] Intentando duplicar el producto "Notebook Dell Inspiron"...`);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Notebook Dell Inspiron", price: 1500 })
+      });
+
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(`[HTTP ${resp.status} Conflict] ${data.detail}`);
+      }
+    } catch (excepcion) {
+      mostrarAlerta("warn", "Captura de Excepción 409 (Conflicto de Recursos)", excepcion.message);
+      log("error", `[EXCEPCIÓN 409 CAPTURADA EN CLIENTE]: ${excepcion.message}`);
+    }
+  }
+
+  // Prueba 3: Forzar Error 404 (ID Inexistente)
+  async function probarExcepcion404() {
+    const idInexistente = 9999;
+    log("warn", `[DISPARANDO PRUEBA] Consultando GET /items/${idInexistente}...`);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/items/${idInexistente}`);
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(`[HTTP ${resp.status} Not Found] ${data.detail}`);
+      }
+    } catch (excepcion) {
+      mostrarAlerta("warn", "Captura de Excepción 404 (Recurso no encontrado)", excepcion.message);
+      log("error", `[EXCEPCIÓN 404 CAPTURADA EN CLIENTE]: ${excepcion.message}`);
+    }
+  }
+
+  // Prueba 4: Forzar Error 500 (Excepción Interna del Servidor)
+  async function probarExcepcion500() {
+    log("warn", `[DISPARANDO PRUEBA] Solicitando endpoint crítico GET /simular-error-500...`);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/simular-error-500`);
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(`[HTTP ${resp.status} Internal Server Error] ${data.detail}`);
+      }
+    } catch (excepcion) {
+      mostrarAlerta("error", "Captura de Excepción 500 (Falla Crítica del Servidor)", excepcion.message);
+      log("error", `[EXCEPCIÓN 500 CAPTURADA EN CLIENTE]: ${excepcion.message}`);
+    }
+  }
+
+  // Prueba 5: Forzar Excepción de Red (Simular servidor caído)
+  async function probarFallaDeRed() {
+    const urlFalsa = "http://localhost:59999";
+    log("warn", `[DISPARANDO PRUEBA] Intentando conectar a un puerto inexistente (${urlFalsa})...`);
+    try {
+      await fetch(`${urlFalsa}/items`, { method: "GET" });
+    } catch (excepcion) {
+      mostrarAlerta("error", "Captura de Excepción de Red / Caída de Servidor", `El cliente detectó que el servidor no responde: "${excepcion.message}" (Connection Refused).`);
+      log("error", `[EXCEPCIÓN DE RED CAPTURADA EN CLIENTE]: ${excepcion.message}`);
+    }
+  }
+
+  // Inicio automático al cargar la página
+  window.addEventListener("DOMContentLoaded", () => {
+    verificarConexion();
+    cargarItems();
+  });
+</script>
+
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
